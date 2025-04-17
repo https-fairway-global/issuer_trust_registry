@@ -1,46 +1,40 @@
-# Trust Registry Smart Contract (fairway/trust_registry)
+# Issuer Trust Registry Smart Contract (fairway/issuer_trust_registry)
 
-This Aiken project implements an on-chain trust registry, acting as a simple vault managed by a designated administrator. It allows storing and managing information about trusted issuers, specifically their Decentralized Identifiers (DIDs), names, and the types of credentials they are authorized to issue.
+This Aiken project implements an on-chain trust registry using a single state UTXO managed by a designated curator. It stores a Merkle root representing the state of trusted issuers, allowing for efficient verification of issuer status off-chain.
 
 ## Contract Overview
 
-The contract uses a state-per-UTXO pattern, where each UTXO locked at the script address represents a single registered issuer.
+The contract uses a single state UTXO pattern. One UTXO locked at the script address holds the current Merkle root of the registered issuers. Updates involve consuming this UTXO and producing a new one with the updated Merkle root.
 
 ### Parameters
 
-The validator is parameterized at compile time with the administrator's public key hash:
+The validator is parameterized at compile time with the curator's public key hash:
 
-*   `admin_pkh: VerificationKeyHash`: The hash of the verification key belonging to the administrator authorized to manage registry entries.
+*   `curator_pkh: VerificationKeyHash`: The hash of the verification key belonging to the curator authorized to update the registry's Merkle root.
 
-### Datum (`RegistryEntry`)
+### Datum (`RegistryState`)
 
-Each UTXO representing an entry in the registry holds the following datum:
+The single state UTXO holds the following datum:
 
-*   `issuer_did: ByteArray`: The unique Decentralized Identifier (DID) of the registered issuer.
-*   `issuer_name: ByteArray`: A human-readable name for the issuer (UTF-8 encoded).
-*   `credential_types: List<ByteArray>`: A list of identifiers or names representing the types of credentials this issuer is authorized to issue.
+*   `merkle_root: ByteArray`: The Merkle root hash representing the current set of registered issuers and their details. The specific structure of the Merkle tree (e.g., how issuer DIDs, names, credential types are included) is defined off-chain.
 
 ### Redeemer (`Action`)
 
-To modify or remove an existing registry entry, the administrator must submit a transaction that spends the corresponding UTXO, providing one of the following redeemers:
+To update the Merkle root, the curator must submit a transaction that spends the state UTXO, providing the following redeemer:
 
-*   `UpdateEntry { name: ByteArray, cred_types: List<ByteArray> }`: Used to update the `issuer_name` and `credential_types` for an existing entry. The `issuer_did` remains unchanged.
-*   `RemoveEntry`: Used to permanently remove an issuer's entry from the registry.
+*   `UpdateRoot { new_root: ByteArray }`: Used to replace the existing `merkle_root` with a new one.
 
 ### Logic (`spend` handler)
 
-The core logic resides in the `spend` handler, which validates attempts to spend existing registry entry UTxOs:
+The core logic resides in the `spend` handler, which validates attempts to spend the state UTXO:
 
-1.  **Admin Signature:** The transaction *must* be signed by the key corresponding to the `admin_pkh` parameter.
-2.  **Datum Presence:** The UTXO being spent *must* contain a valid `RegistryEntry` datum.
-3.  **Action Dispatch:** The logic branches based on the provided `Action` redeemer:
-    *   **On `UpdateEntry`:**
-        *   Ensures exactly one output is sent back to the script address.
-        *   Verifies the output datum contains the *same* `issuer_did` as the input.
-        *   Verifies the output datum's `issuer_name` and `credential_types` match those provided in the redeemer.
-        *   Ensures the Ada value (and any other tokens) in the output is greater than or equal to the input value (value preservation).
-    *   **On `RemoveEntry`:**
-        *   Ensures *no* output is sent back to the script address, effectively consuming and deleting the entry.
+1.  **Curator Signature:** The transaction *must* be signed by the key corresponding to the `curator_pkh` parameter.
+2.  **Datum Presence:** The UTXO being spent *must* contain a valid `RegistryState` datum.
+3.  **Action Dispatch:** The logic validates the `UpdateRoot` action:
+    *   Ensures exactly one output is sent back to the script address (the continuing state UTXO).
+    *   Verifies the output datum is a `RegistryState`.
+    *   Verifies the `merkle_root` in the output datum matches the `new_root` provided in the redeemer.
+    *   Ensures the Ada value (and any other tokens) in the output is greater than or equal to the input value (value preservation).
 
 ## Building
 
@@ -62,20 +56,17 @@ aiken check
 
 ## Usage
 
-1.  **Instantiation:** Build the contract (`aiken build`) and apply the `admin_pkh` parameter to the generated blueprint to get the script address.
-2.  **Creating Entries:** Send a transaction locking a UTXO (e.g., containing minimum Ada) at the script address. The transaction must include the `RegistryEntry` datum (inline) for the issuer being registered.
-3.  **Updating Entries:** The administrator creates a transaction that:
-    *   Spends the UTXO of the entry to be updated.
-    *   Includes the `UpdateEntry` redeemer with the new name and credential types.
-    *   Includes an output back to the script address containing the updated `RegistryEntry` datum and preserving the locked value.
-    *   Is signed by the admin key.
-4.  **Removing Entries:** The administrator creates a transaction that:
-    *   Spends the UTXO of the entry to be removed.
-    *   Includes the `RemoveEntry` redeemer.
-    *   Does *not* include any output back to the script address.
-    *   Is signed by the admin key.
+1.  **Instantiation:** Build the contract (`aiken build`) and apply the `curator_pkh` parameter to the generated blueprint to get the script address.
+2.  **Initialization:** The curator sends an initial transaction locking a UTXO (e.g., containing minimum Ada) at the script address. The transaction must include the initial `RegistryState` datum (inline) containing the starting Merkle root (e.g., a root representing an empty registry).
+3.  **Updating the Root:** The curator creates a transaction that:
+    *   Spends the current state UTXO.
+    *   Includes the `UpdateRoot` redeemer with the `new_root`.
+    *   Includes an output back to the script address containing the new `RegistryState` datum (with the `new_root`) and preserving the locked value.
+    *   Is signed by the curator key.
+4.  **Off-Chain Verification:** Users/applications query the current state UTXO at the script address to get the latest `merkle_root`. They can then verify if a specific issuer is part of the registry using the issuer's data and a Merkle proof provided by an off-chain service, checking it against the on-chain `merkle_root`.
 
 ## Security Considerations
 
-*   The security of the registry relies entirely on the security of the administrator's private key (`admin_pkh`). Compromise of this key allows full control over all registry entries.
-*   Ensure the `admin_pkh` parameter is set correctly during blueprint generation. 
+*   The integrity of the registry relies entirely on the security of the curator's private key (`curator_pkh`). Compromise of this key allows arbitrary changes to the Merkle root.
+*   Ensure the `curator_pkh` parameter is set correctly during blueprint generation.
+*   The security and correctness of off-chain Merkle proof generation and verification are crucial for the overall system's reliability. 
