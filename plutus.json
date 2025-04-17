@@ -1,0 +1,101 @@
+{
+  "preamble": {
+    "title": "fairway/trust_registry",
+    "description": "Aiken contracts for project 'fairway/trust_registry'",
+    "version": "0.0.0",
+    "plutusVersion": "v3",
+    "compiler": {
+      "name": "Aiken",
+      "version": "v1.1.16+23061c0"
+    },
+    "license": "Apache-2.0"
+  },
+  "validators": [
+    {
+      "title": "issuer_trust_registry.issuer_trust_registry.spend",
+      "datum": {
+        "title": "datum_opt",
+        "schema": {
+          "$ref": "#/definitions/issuer_trust_registry~1RegistryState"
+        }
+      },
+      "redeemer": {
+        "title": "redeemer",
+        "schema": {
+          "$ref": "#/definitions/issuer_trust_registry~1Action"
+        }
+      },
+      "parameters": [
+        {
+          "title": "curator_pkh",
+          "schema": {
+            "$ref": "#/definitions/aiken~1crypto~1VerificationKeyHash"
+          }
+        }
+      ],
+      "compiledCode": "590275010100229800aba2aba1aba0aab9faab9eaab9dab9a9bae0024888888896600264653001300900198049805000cc0240092225980099b8748008c020dd500144c8cc8966002600260166ea801a26464b300130120028acc004c00cc034dd518089809002c56600264660020026eb0c048c04cc04cc04cc04cc04cc04cc04cc04cc03cdd5003912cc00400629422b30013371e6eb8c04c00403629462660040046028002807101144c9660026008601c6ea8006330013012300f375400323013301400191809980a180a000a44464b3001300830123754003132325980099b8748010c050dd5000c4c9660026016602a6ea8006264b3001301b0018acc004cdc79bae301a001375c6034602e6ea80462b30013375e600e602e6ea8010c01cc05cdd51803980b9baa0088a518b202a8b202a8b2030301637540031640506030602a6ea80062c8098c00cc050dd5000980b18099baa0018b2022332233225980099b8730020014800a2b30010018a6103d87a8000899ba548000cc060c0640052f5c080ba298103d87a80004050600400464660020026eb0c010c054dd5006912cc004006297ae0899912cc004cdd7980d980c1baa00200589980d00119802002000c4cc010010005016180c800980d000a02e2259800800c52000899b8048008cc008008c060005015180a98091baa3002301237540068b201a323300100137586024601e6ea801c896600200314c103d87a80008992cc004cdd7980a18089baa001007899ba548000cc04c0052f5c11330030033015002403c6026002808a2c80622c80622c8078dd7180800098061baa0068b2014300d001370e900018049baa0028b200e180480098021baa0098a4d13656400801",
+      "hash": "ad3ae08d120c7d1476f9df2a929edd2b11a92d6c238ccb84427e51ea"
+    },
+    {
+      "title": "issuer_trust_registry.issuer_trust_registry.else",
+      "redeemer": {
+        "schema": {}
+      },
+      "parameters": [
+        {
+          "title": "curator_pkh",
+          "schema": {
+            "$ref": "#/definitions/aiken~1crypto~1VerificationKeyHash"
+          }
+        }
+      ],
+      "compiledCode": "590275010100229800aba2aba1aba0aab9faab9eaab9dab9a9bae0024888888896600264653001300900198049805000cc0240092225980099b8748008c020dd500144c8cc8966002600260166ea801a26464b300130120028acc004c00cc034dd518089809002c56600264660020026eb0c048c04cc04cc04cc04cc04cc04cc04cc04cc03cdd5003912cc00400629422b30013371e6eb8c04c00403629462660040046028002807101144c9660026008601c6ea8006330013012300f375400323013301400191809980a180a000a44464b3001300830123754003132325980099b8748010c050dd5000c4c9660026016602a6ea8006264b3001301b0018acc004cdc79bae301a001375c6034602e6ea80462b30013375e600e602e6ea8010c01cc05cdd51803980b9baa0088a518b202a8b202a8b2030301637540031640506030602a6ea80062c8098c00cc050dd5000980b18099baa0018b2022332233225980099b8730020014800a2b30010018a6103d87a8000899ba548000cc060c0640052f5c080ba298103d87a80004050600400464660020026eb0c010c054dd5006912cc004006297ae0899912cc004cdd7980d980c1baa00200589980d00119802002000c4cc010010005016180c800980d000a02e2259800800c52000899b8048008cc008008c060005015180a98091baa3002301237540068b201a323300100137586024601e6ea801c896600200314c103d87a80008992cc004cdd7980a18089baa001007899ba548000cc04c0052f5c11330030033015002403c6026002808a2c80622c80622c8078dd7180800098061baa0068b2014300d001370e900018049baa0028b200e180480098021baa0098a4d13656400801",
+      "hash": "ad3ae08d120c7d1476f9df2a929edd2b11a92d6c238ccb84427e51ea"
+    }
+  ],
+  "definitions": {
+    "ByteArray": {
+      "dataType": "bytes"
+    },
+    "aiken/crypto/VerificationKeyHash": {
+      "title": "VerificationKeyHash",
+      "dataType": "bytes"
+    },
+    "issuer_trust_registry/Action": {
+      "title": "Action",
+      "description": "Redeemer defining the administrative action being performed.",
+      "anyOf": [
+        {
+          "title": "UpdateRoot",
+          "description": "Update the Merkle root stored in the state UTxO.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "new_root",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "issuer_trust_registry/RegistryState": {
+      "title": "RegistryState",
+      "description": "Datum stored with the single state UTxO, holding the registry's commitment.",
+      "anyOf": [
+        {
+          "title": "RegistryState",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "merkle_root",
+              "description": "The Merkle root hash representing the current state of the off-chain registry.",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

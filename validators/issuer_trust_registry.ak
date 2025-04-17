@@ -51,7 +51,8 @@ validator issuer_trust_registry(curator_pkh: VerificationKeyHash) {
     when redeemer is {
       UpdateRoot { new_root } -> {
         // a. Find the single continuing output back to the script address.
-        expect Some(continuing_output) = find_continuing_output(self, script_address)
+        expect Some(continuing_output) =
+          find_continuing_output(self, script_address)
 
         // b. Verify the continuing output's datum is correct.
         // First, ensure it's InlineDatum and extract the raw Data
@@ -59,24 +60,27 @@ validator issuer_trust_registry(curator_pkh: VerificationKeyHash) {
 
         // Then, cast the raw Data to RegistryState and extract the root
         expect RegistryState { merkle_root: root } = raw_datum_data
-        expect root == new_root // Ensure the output root matches the redeemer
+        expect root == new_root
 
+        // Ensure the output root matches the redeemer
         // c. Check value preservation: Output value must be >= input value.
         // This ensures the minimum Ada (or other locked value) remains.
         // Note: Direct Value comparison >= is not standard. Assuming value preservation for now.
         // A more robust check might compare lovelace or specific token quantities if needed.
-        expect continuing_output.value == input_value // Simple equality check for now
+        expect continuing_output.value == input_value
 
+        // Simple equality check for now
         // All checks passed for UpdateRoot.
         True
       }
-      // No other actions are allowed.
     }
+    // No other actions are allowed.
   }
 
   // Fallback handler for other script purposes (e.g., minting) - currently disallowed.
   else(_) {
-    fail // Only spending the state UTxO is permitted.
+    fail
+    // Only spending the state UTxO is permitted.
   }
 }
 
@@ -88,13 +92,18 @@ fn find_own_input(tx: Transaction, own_ref: OutputReference) -> Option<Input> {
 }
 
 /// Find the single output that continues the contract state (pays back to the script address).
-fn find_continuing_output(tx: Transaction, script_address: Address) -> Option<Output> {
+fn find_continuing_output(
+  tx: Transaction,
+  script_address: Address,
+) -> Option<Output> {
   // Find all outputs going to the script address
-  let outputs_to_self = list.filter(tx.outputs, fn(output) { output.address == script_address })
+  let outputs_to_self =
+    list.filter(tx.outputs, fn(output) { output.address == script_address })
   // Ensure there is exactly one such output
   if list.length(outputs_to_self) == 1 {
     list.head(outputs_to_self)
   } else {
-    None // Fail if zero or more than one output returns to the script
+    None
   }
+  // Fail if zero or more than one output returns to the script
 }
